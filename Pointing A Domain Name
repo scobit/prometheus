@@ -1,0 +1,14 @@
+I have gone onto my domain name provider, and added an A Name record that points to the IP address of my new Prometheus server.
+
+Example
+
+prometheus.sbcode.net. IN A 134.209.224.39
+
+note that it may take some time for the DNS record to propagate across the internet.
+
+Purchasing A Domain
+If you don't have a domain name, and your colleagues can't lend you one or even create a subdomain for you, then you can get cheap domains from Namecheap
+
+Use the Domain Name Search Tool and try anything. The cheapest domains at the moment are the .xyz and .website domains.
+
+Namecheap also has an advanced DNS config tool which allows you to create subdomains. The @ symbol in the image below is an alias for the main domain that is being managed.
