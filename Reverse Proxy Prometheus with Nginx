@@ -1,0 +1,33 @@
+# One option to help secure our Prometheus server is to put it behind a reverse proxy so that we can later add SSL and an Authentication 
+# layer over the default unrestricted Prometheus web interface.
+
+# We can use Nginx
+sudo apt install nginx
+
+# cd to the Nginx sites-enabled folder
+cd /etc/nginx/sites-enabled
+
+# Create a new Nginx configuration for Prometheus
+vim prometheus
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name  YOUR-DOMAIN-NAME;
+
+    location / {
+        proxy_pass           http://localhost:9090/;
+    }
+}
+
+# test the new configuration has no errors
+nginx -t
+
+# Restart Nginx
+sudo service nginx restart
+sudo service nginx status
+
+# Test it by visiting again http://YOUR-DOMAIN-NAME
+# Visiting your ip address directly will still show the default Nginx welcome page. 
+# If you don't want this to happen, then you can delete it's configuration using the command below.
+rm /etc/nginx/sites-enabled/default
