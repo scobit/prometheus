@@ -1,0 +1,25 @@
+We will now add transport encryption to the Prometheus web user interface.
+
+Since I have already set up the domain name, I can get a free certificate using Certbot.
+
+Certbot will install a LetsEncrypt SSL certificate for free.
+
+Ensure your domain name has propagated before running CertBot.
+
+Your domain and IP will be different than mine, and note that it may take some time for the DNS record to propagate across the internet.
+
+On my server, I will run
+
+sudo snap install --classic certbot
+
+Now we can run CertBot.
+
+
+sudo certbot --nginx
+
+Follow the prompts and select the domain name I want to secure.
+
+Next open the Nginx Prometheus config file we created earlier to see the changes.
+
+
+sudo nano /etc/nginx/sites-enabled/prometheus
