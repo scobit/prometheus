@@ -1,0 +1,59 @@
+# install via package
+sudo apt install prometheus
+
+# check status
+service prometheus status
+service prometheus-node-exporter status
+or
+systemctl status prometheus
+systemctl status prometheus-node-exporter status
+
+# GUI
+http://[your ip address]:9090
+
+# created a user called Prometheus. You can see which processes it is running by using the command,
+ps -u prometheus
+
+# Manually Install Specific Prometheus Version
+# For manually installing the Prometheus binaries visit the instructions as https://prometheus.io/download/
+# Download the binary that you want.
+wget https://github.com/prometheus/prometheus/releases/download/v2.21.0/prometheus-2.21.0.linux-amd64.tar.gz
+
+# verify it's ok by checking its SHA256 Checksum
+sha256sum prometheus-2.21.0.linux-amd64.tar.gz
+
+# untar the gz archive
+tar xvfz prometheus-2.21.0.linux-amd64.tar.gz
+
+# cd into the new folder
+cd prometheus-2.21.0.linux-amd64
+
+# Copy all files to the /usr/local/bin/ folder
+cp -r . /usr/local/bin
+
+# Create a new system user called prometheus (if it doesn't already exist)
+sudo useradd --system prometheus
+
+# Create a file called prometheus.service
+sudo nano /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus Service
+After=network.target
+
+[Service]
+Type=simple
+User=prometheus
+ExecStart=/usr/local/bin/prometheus --config.file=/usr/local/bin/prometheus.yml
+
+[Install]
+WantedBy=multi-user.target
+
+# Now start and check the service is running.
+
+sudo service prometheus start
+sudo service prometheus status
+
+sudo service prometheus stop
+sudo service prometheus status
+
+
