@@ -81,7 +81,7 @@ sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
 
 Prometheus имеет слабую поддержку установки из репозитория. Необходимо скачать исходник, создать пользователя, вручную скопировать нужные файлы, назначить права и создать юнит для автозапуска.
 
-Переходим на официальную страницу загрузки, копируем ссылку на пакет для Linux, скачиваем.
+#### Переходим на официальную страницу загрузки, копируем ссылку на пакет для Linux, скачиваем.
 ```
 https://prometheus.io/download/
 
@@ -123,28 +123,22 @@ chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
 chown prometheus:prometheus /usr/local/bin/{prometheus,promtool}
 ```
 
-#### Запуск и проверка, запускаем prometheus командой:
+#### Проверка версии prometheus
+```
+prometheus --version
+```
+
+#### Запуск prometheus. Лог успешного запуска - Server is ready to receive web requests
 ```
 /usr/local/bin/prometheus --config.file /etc/prometheus/prometheus.yml --storage.tsdb.path /var/lib/prometheus/ --web.console.templates=/etc/prometheus/consoles --web.console.libraries=/etc/prometheus/console_libraries
 ```
 
-#### Увидим лог запуска — в конце «Server is ready to receive web requests»:
+#### UI Prometheus:
 ```
-level=info ts=2019-08-07T07:39:06.849Z caller=main.go:621 msg="Server is ready to receive web requests."
-```
-
-#### Открываем веб-браузер и переходим в консоль Prometheus:
-```
-http://<IP-адрес сервера>:9090
+http://ServerIP:9090
 ```
 
-## Автозапуск
-
-Prometheus после установка запускается вручную. Для настройки автоматического старта Prometheus создадим новый юнит в systemd.
-
-Прерываем работу Prometheus с помощью комбинации Ctrl + C. 
-
-#### Создаем файл prometheus.service:
+#### Создаем файл prometheus.service 
 ```
 vim /etc/systemd/system/prometheus.service
 
@@ -166,24 +160,25 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
+
 ```
 
-#### Перечитываем конфигурацию systemd:
+#### Перечитываем конфигурацию systemd
 ```
 systemctl daemon-reload
 ```
 
-#### Разрешаем автозапуск:
+#### Разрешаем автозапуск
 ```
 systemctl enable prometheus
 ```
 
-#### После ручного запуска мониторинга, который мы делали для проверки, могли сбиться права на папку библиотек — снова зададим ей владельца:
+#### После ручного запуска, могли сбиться права на папку библиотек, исправляем владельца:
 ```
 chown -R prometheus:prometheus /var/lib/prometheus
 ```
 
-#### Запускаем службу и проверяем, что она запустилась корректно:
+#### Запускаем и проверка службы
 ```
 systemctl start prometheus
 systemctl status prometheus
@@ -191,62 +186,55 @@ systemctl status prometheus
 
 ## Alertmanager
 
-Alertmanager нужен для сортировки и группировки событий. Он устанавливается по такому же принципу, что и prometheus.
+Alertmanager нужен для сортировки и группировки событий. 
 
-### Загрузка
 
-#### На официальной странице загрузки копируем ссылку на Alertmanager для Linux:
+#### Переходим на официальную страницу загрузки, копируем ссылку на пакет для Linux, скачиваем
 ```
 https://prometheus.io/download/#alertmanager
+
+mkdir alertmanager && cd alertmanager
+
+wget https://github.com/prometheus/alertmanager/releases/download/v0.25.0/alertmanager-0.25.0.linux-amd64.tar.gz
+
 ```
 
-####  Теперь используем ссылку для загрузки alertmanager:
-```
-wget https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz
-```
-
-### Установка
-
-#### Создаем каталоги для alertmanager:
+#### Создаем иерархию каталогов для alertmanager
 ```
 mkdir /etc/alertmanager /var/lib/prometheus/alertmanager
 ```
 
-#### Распакуем наш архив и перейдем в каталог с распакованными файлами:
+#### Распаковываем архив и переходим в каталог с распакованными файлами
 ```
 tar zxvf alertmanager-*.linux-amd64.tar.gz
 cd alertmanager-*.linux-amd64
 ```
 
-#### Распределяем файлы по каталогам:
+#### Копируем файлы по каталогам:
 ```
 cp alertmanager amtool /usr/local/bin/
 cp alertmanager.yml /etc/alertmanager
 
 ```
 
-### Назначение прав
-
-#### Создаем пользователя, от которого будем запускать alertmanager, без домашней директории и без возможности входа в консоль сервера.
+#### Создаем пользователя, от которого будем запускать alertmanager, без домашней директории и без возможности входа в консоль сервера
 ```
 useradd --no-create-home --shell /bin/false alertmanager
 ```
 
-#### Задаем владельца для каталогов, которые мы создали на предыдущем шаге:
+#### Задаем владельца для каталогов, которые мы создали на предыдущем шаге
 ```
 chown -R alertmanager:alertmanager /etc/alertmanager /var/lib/prometheus/alertmanager
 ```
 
-#### Задаем владельца для скопированных файлов:
+#### Задаем владельца для скопированных файлов
 ```
 chown alertmanager:alertmanager /usr/local/bin/{alertmanager,amtool}
 ```
 
-### Автозапуск
-
-#### Создаем файл alertmanager.service в systemd:
+#### Создаем файл alertmanager.service в systemd
 ```
-vim/etc/systemd/system/alertmanager.service
+vim /etc/systemd/system/alertmanager.service
 
 [Unit]
 Description=Alertmanager Service
@@ -287,61 +275,50 @@ systemctl start alertmanager
 
 #### Открываем веб-браузер и переходим в консоль alertmanager:
 ```
-http://<IP-адрес сервера>:9093
+http://ServerIP:9093
 ```
 
 ## node_exporter
 
-Для получения метрик от операционной системы, установим и настроим node_exporter на тот же сервер прометеуса (и на все клиентские компьютеры). Процесс установки такой же, как у Prometheus и Alertmanager.
-
 Если мы устанавливаем node_exporter на клиента, необходимо проверить наличие брандмауэра и, при необходимости, открыть tcp-порт 9100.
 
 
-
-
-### Загрузка
-
-#### Заходим на страницу загрузки и копируем ссылку на node_exporter.
-#### обратите внимание, что для некоторых приложений есть свои готовые экспортеры.
+#### Переходим на официальную страницу загрузки, копируем ссылку на пакет для Linux, скачиваем
 ```
 https://prometheus.io/download/#node_exporter
+
+mkdir node_exporter && cd node_exporter
+
+wget https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+
 ```
 
-#### используем ссылку для загрузки node_exporter:
-```
-wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
-```
-
-### Установка
-
-#### Распакуем скачанный архив:
+#### Распаковываем скачанный архив:
 ```
 tar zxvf node_exporter-*.linux-amd64.tar.gz
 ```
 
-#### перейдем в каталог с распакованными файлами:
+#### Переходим в каталог с распакованными файлами
 ```
 cd node_exporter-*.linux-amd64
 ```
 
-#### Копируем исполняемый файл в bin:
+#### Копируем исполняемый файл в bin
 ```
 cp node_exporter /usr/local/bin/
 ```
-
-### Назначение прав
 
 #### Создаем пользователя nodeusr:
 ```
 useradd --no-create-home --shell /bin/false nodeusr
 ```
 
-#### Задаем владельца для исполняемого файла:
+#### Задаем владельца для исполняемого файла
 ```
 chown -R nodeusr:nodeusr /usr/local/bin/node_exporter
 ```
 
-#### Автозапуск, Создаем файл node_exporter.service в systemd:
+#### Автозапуск, создаем файл node_exporter.service в systemd
 ```
 vim /etc/systemd/system/node_exporter.service
 
@@ -377,15 +354,15 @@ systemctl enable node_exporter
 systemctl start node_exporter
 ```
 
-#### Открываем веб-браузер и переходим по адресу  — мы увидим метрики, собранные node_exporter:
+#### Открываем UI node_exporter
 ```
-http://<IP-адрес сервера или клиента>:9100/metrics
+http://ServerIP:9100/metrics
 ```
 
 
 ## Отображение метрик с node_exporter в консоли prometheus
 
-#### Открываем конфигурационный файл prometheus:
+#### Редактируем конфигурационный файл prometheus:
 ```
 vim /etc/prometheus/prometheus.yml
 ```
