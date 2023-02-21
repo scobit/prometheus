@@ -539,11 +539,90 @@ systemctl restart prometheus
 
 ## Мониторинг служб Linux
 
+Для мониторинга сервисов с помощью Prometheus мы настроим сбор метрик и отображение тревог.
+
+Сбор метрие с помощью node_exporter
 
 
+#### Открываем сервис, созданный для node_exporter и добавим к ExecStart:
+#### данная опция указывает экспортеру мониторить состояние каждой службы.
+
+```
+vim /etc/systemd/system/node_exporter.service
+
+...
+ExecStart=/usr/local/bin/node_exporter --collector.systemd
+...
+
+```
+
+#### При необходимости, мы можем либо мониторить отдельные службы, добавив опцию collector.systemd.unit-whitelist:
+#### в данном примере будут мониториться только сервисы chronyd, mariadb и nginx.
+
+```
+ExecStart=/usr/local/bin/node_exporter --collector.systemd --collector.systemd.unit-whitelist="(chronyd|mariadb|nginx).service"
+```
+
+#### либо наоборот — мониторить все службы, кроме отдельно взятых:
+#### при такой настройке мы запретим мониторинг сервисов auditd, dbus и kdump.
+```
+ExecStart=/usr/local/bin/node_exporter --collector.systemd --collector.systemd.unit-blacklist="(auditd|dbus|kdump).service"
+```
+
+#### Чтобы применить настройки, перечитываем конфиг systemd:
+```
+systemctl daemon-reload
+```
+
+#### Перезапускаем node_exporter:
+```
+systemctl restart node_exporter
+```
+
+#### Отображение тревог
+Настроим мониторинг для службы NGINX.
+
+#### Создаем файл с правилом:
+```
+vi /etc/prometheus/services.rules.yml
+
+groups:
+- name: services.rules
+  rules:
+    - alert: nginx_service
+      expr: node_systemd_unit_state{name="nginx.service",state="active"} == 0
+      for: 1s
+      annotations:
+        summary: "Instance {{ $labels.instance }} is down"
+        description: "{{ $labels.instance }} of job {{ $labels.job }} is down."
+```
 
 
+#### Подключим файл с описанием правил в конфигурационном файле prometheus:
+#### в данном примере мы добавили наш файл services.rules.yml к уже ранее добавленному alert.rules.yml в секцию rule_files.
+```
+vi /etc/prometheus/prometheus.yml
 
+...
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+  - "alert.rules.yml"
+  - "services.rules.yml"
+...
+```
+
+#### Перезапускаем prometheus:
+```
+systemctl restart prometheus
+```
+
+#### Для проверки, остановим наш сервис:
+```
+systemctl stop nginx
+```
+
+В консоли Prometheus в разделе Alerts мы должны увидеть тревогу:
 
 
 
