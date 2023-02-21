@@ -26,11 +26,7 @@ Prometheus является приложением от программисто
 
 ## Установка Prometheus + Alertmanager + node_exporter на Linux
 
-### Подготовка сервера
-
-### Время
-
-#### Для отображения событий в правильное время, необходимо настроить его синхронизацию. Для этого установим chrony:
+#### Настройка  chrony
 ```
 # CentOS / Red Hat:
 yum -y install chrony
@@ -38,45 +34,46 @@ systemctl enable chronyd
 systemctl start chronyd
 
 # Ubuntu / Debian:
-apt-get install chrony
+apt-get -y install chrony
 systemctl enable chrony
 systemctl start chrony
 ```
 
-#### Брандмауэр
-#### На фаерволе, при его использовании, необходимо открыть порты: 
+
+Firewall, при его использовании, необходимо открыть порты:
+
  - TCP 9090 — http для сервера prometheus.
  - TCP 9093 — http для алерт менеджера.
  - TCP и UDP 9094 — для алерт менеджера.
  - TCP 9100 — для node_exporter.
 
 ```
-# с помощью firewalld:
+# firewalld:
 firewall-cmd --permanent --add-port=9090/tcp --add-port=9093/tcp --add-port=9094/{tcp,udp} --add-port=9100/tcp
 firewall-cmd --reload
 
-# с помощью iptables:
+# iptables:
 iptables -I INPUT 1 -p tcp --match multiport --dports 9090,9093,9094,9100 -j ACCEPT
 iptables -A INPUT -p udp --dport 9094 -j ACCEPT
 
-# с помощью ufw:
+# ufw
 ufw allow 9090,9093,9094,9100/tcp
 ufw allow 9094/udp
 ufw reload
 ```
 
-#### SELinux
-
-#### По умолчанию, SELinux работает в операционный системах на базе Red Hat. Проверяем, работает ли она в нашей системе:
+#### Проверка статуса SELinux (Enforcing - активен)
 ```
 getenforce
 ```
 
-#### Если мы получаем в ответ: Enforcing, необходимо отключить его.
-#### если же мы получим ответ The program 'getenforce' is currently not installed, то SELinux не установлен в системе.
+#### Отключение SElinux
 ```
 setenforce 0
+```
 
+#### Отключение SELinux после перезагрузки
+```
 sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
 ```
 
@@ -84,49 +81,44 @@ sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
 
 Prometheus имеет слабую поддержку установки из репозитория. Необходимо скачать исходник, создать пользователя, вручную скопировать нужные файлы, назначить права и создать юнит для автозапуска.
 
-### Загрузка
-
-Переходим на официальную страницу загрузки и копируем ссылку на пакет для Linux:
+Переходим на официальную страницу загрузки, копируем ссылку на пакет для Linux, скачиваем.
 ```
 https://prometheus.io/download/
 
-wget https://github.com/prometheus/prometheus/releases/download/v2.20.1/prometheus-2.20.1.linux-amd64.tar.gz
+mkdir prometheus && cd prometheus
+
+wget https://github.com/prometheus/prometheus/releases/download/v2.37.6/prometheus-2.37.6.linux-amd64.tar.gz
 ```
 
-### Установка (копирование файлов)
-
-После того, как мы скачали архив prometheus, необходимо его распаковать и скопировать содержимое по разным каталогам.
-
-#### Для начала создаем каталоги, в которые скопируем файлы для prometheus:
+#### Создаём архитектуру каталогов
 ```
 mkdir /etc/prometheus
 mkdir /var/lib/prometheus
 ```
-#### Распакуем наш архив и перейдем в каталог с распакованными файлами:
+
+#### Распаковываем архив и переходим в каталог с распакованными файлами
 ```
 tar zxvf prometheus-*.linux-amd64.tar.gz
 cd prometheus-*.linux-amd64
 ```
 
-#### Распределяем файлы по каталогам:
+#### Копируем файлы по каталогам
 ```
 cp prometheus promtool /usr/local/bin/
 cp -r console_libraries consoles prometheus.yml /etc/prometheus
 ```
 
-### Назначение прав
-
-#### Создаем пользователя, от которого будем запускать систему мониторинга, пользователь без домашней директории и без возможности входа в консоль сервера.
+#### Создаем пользователя, от которого будем запускать систему мониторинга, пользователь без домашней директории и без возможности входа в консоль сервера
 ```
 useradd --no-create-home --shell /bin/false prometheus
 ```
 
-#### Задаем владельца для каталогов, которые мы создали на предыдущем шаге:
+#### Задаем владельца для каталогов
 ```
 chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
 ```
 
-#### Задаем владельца для скопированных файлов:
+#### Задаем владельца для скопированных файлов
 ```
 chown prometheus:prometheus /usr/local/bin/{prometheus,promtool}
 ```
